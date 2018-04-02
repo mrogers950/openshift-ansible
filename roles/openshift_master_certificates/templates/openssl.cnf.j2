@@ -1,0 +1,39 @@
+[req]
+prompt = no
+distinguished_name = req_distinguished_name
+
+default_md = sha256
+
+[req_distinguished_name]
+{% if 'server' in item %}
+CN={{ hostvars[openshift_ca_host].openshift.common.ip }}
+{% else %}
+CN={{ req_attrs[item].cn }}
+{% endif %}
+{% for org in req_attrs[item].org %}
+{% if loop.index == 1 %}
+O={{ org }}
+{% else %}
++O={{ org }}
+{% endif %}
+{% endfor %}
+
+[req_ext]
+{% if req_attrs[item].san %}
+subjectAltName = @alt_names
+{% endif %}
+basicConstraints=critical,CA:FALSE
+keyUsage=critical,digitalSignature, keyEncipherment
+{% if 'server' in item %}
+extendedKeyUsage=serverAuth
+{% else %}
+extendedKeyUsage=clientAuth
+{% endif %}
+
+[alt_names]
+{% for dns in hostvars[openshift_ca_host].openshift.common.all_hostnames %}
+DNS.{{ loop.index }} = {{ dns }}
+{% endfor %}
+{% for ip in ['127.0.0.1', hostvars[openshift_ca_host].openshift.common.ip, hostvars[openshift_ca_host].openshift.common.public_ip ] %}
+IP.{{ loop.index }} = {{ ip }}
+{% endfor %}

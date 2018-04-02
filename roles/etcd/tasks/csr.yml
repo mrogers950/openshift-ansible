@@ -1,0 +1,54 @@
+---
+
+- name: Create generated_certs CSR directory
+  file:
+    path: "{{ etcd_generated_certs_dir }}/{{ etcd_cert_subdir }}/csr"
+    state: directory
+    mode: 0700
+  delegate_to: "{{ etcd_ca_host }}"
+
+- name: Create a server csr for external signing
+  command: >
+    openssl req -new -keyout {{ etcd_cert_prefix }}server.key
+    -config {{ etcd_openssl_conf }}
+    -out {{ etcd_cert_prefix }}server.csr
+    -reqexts {{ etcd_req_ext }} -batch -nodes
+    -subj /CN={{ etcd_hostname }}
+  args:
+    chdir: "{{ etcd_generated_certs_dir }}/{{ etcd_cert_subdir }}/csr"
+    creates: "{{ etcd_generated_certs_dir ~ '/' ~  etcd_cert_subdir ~ '/csr/'
+                 ~ etcd_cert_prefix ~ 'server.csr' }}"
+  environment:
+    SAN: "IP:{{ etcd_ip }},DNS:{{ etcd_hostname }}"
+  delegate_to: "{{ etcd_ca_host }}"
+
+- name: Create a peer csr for external signing
+  command: >
+    openssl req -new -keyout {{ etcd_cert_prefix }}peer.key
+    -config {{ etcd_openssl_conf }}
+    -out {{ etcd_cert_prefix }}peer.csr
+    -reqexts {{ etcd_req_ext }} -batch -nodes
+    -subj /CN={{ etcd_hostname }}
+  args:
+    chdir: "{{ etcd_generated_certs_dir }}/{{ etcd_cert_subdir }}/csr"
+    creates: "{{ etcd_generated_certs_dir ~ '/' ~  etcd_cert_subdir ~ '/csr/'
+                 ~ etcd_cert_prefix ~ 'peer.csr' }}"
+  environment:
+    SAN: "IP:{{ etcd_ip }},DNS:{{ etcd_hostname }}"
+  delegate_to: "{{ etcd_ca_host }}"
+
+- name: Create a client csr for external signing
+  command: >
+    openssl req -new -keyout {{ etcd_cert_prefix }}client.key
+    -config {{ etcd_openssl_conf }}
+    -out {{ etcd_cert_prefix }}client.csr
+    -reqexts {{ etcd_req_ext }} -batch -nodes
+    -subj /CN={{ etcd_hostname }}
+  args:
+    chdir: "{{ etcd_generated_certs_dir }}/{{ etcd_cert_subdir }}/csr"
+    creates: "{{ etcd_generated_certs_dir ~ '/' ~  etcd_cert_subdir ~ '/csr'
+                 ~ etcd_cert_prefix ~ 'client.csr' }}"
+  environment:
+    SAN: "IP:{{ etcd_ip }},DNS:{{ etcd_hostname }}"
+  delegate_to: "{{ etcd_ca_host }}"
+

@@ -1,0 +1,20 @@
+---
+- import_playbook: init/main.yml
+
+- hosts: oo_masters_to_config
+  roles:
+  - openshift_master_facts
+  tasks:
+  - import_role:
+      name: openshift_master_certificates
+      tasks_from: csr.yml
+    vars:
+      openshift_ca_host: "{{ groups.oo_first_master.0 }}"
+
+- hosts: oo_etcd_to_config
+  roles:
+  - openshift_etcd_facts
+  tasks:
+  - import_role:
+      name: etcd
+      tasks_from: csr.yml

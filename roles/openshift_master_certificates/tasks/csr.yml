@@ -1,0 +1,30 @@
+---
+- name: Create CSR directory
+  file:
+    path: "{{ openshift_csr_dir }}"
+    state: directory
+    mode: 0700
+  delegate_to: "{{ openshift_ca_host }}"
+
+- template:
+    src: openssl.cnf.j2
+    dest: "{{ openshift_csr_dir }}/{{ item }}-openssl.cnf"
+  with_items: "{{ openshift_master_csrs }}"
+  vars:
+    req_attrs:
+      admin: { cn: "system:admin", org: [ "system:cluster-admins" ], san: true }
+      master.kubelet-client: { cn: "system:openshift-node-admin", org: [ "system:node-admins" ], san: true }
+      master.proxy-client: { cn: "system:master-proxy", org: [], san: true }
+      master.server: { cn: "", org: [], san: true }
+      openshift-master: { cn: "system:openshift-master", org: [ "system:masters", "system:openshift-master" ], san: true }
+      openshift-aggregator: { cn: "system:openshift-aggregator", org: [], san: false }
+
+- name: Create CSRs for master certificates
+  with_items: "{{ openshift_master_csrs }}"
+  shell: >
+    /bin/openssl req -multivalue-rdn -nodes -newkey rsa:2048 -keyout {{ openshift_csr_dir }}/{{ item }}.key
+    -out {{ openshift_csr_dir }}/{{ item }}.csr
+    -config {{ openshift_csr_dir }}/{{ item }}-openssl.cnf
+    -reqexts req_ext
+  delegate_to: "{{ openshift_ca_host }}"
+  run_once: true
